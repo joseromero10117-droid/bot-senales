@@ -1,0 +1,32 @@
+name: Bot de Señales 24/7
+
+on:
+  schedule:
+    # Se ejecutará automáticamente en la nube cada 15 minutos
+    - cron: '*/15 * * * *' 
+  workflow_dispatch: # Permite ejecutarlo manualmente cuando quieras con un clic
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write # Permite que el sistema guarde el registro en tu archivo txt
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Ejecutar script
+        run: python bot.py
+
+      - name: Guardar cambios en el archivo de historial
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto: Nueva señal registrada"
+          file_pattern: "historial_senales.txt"

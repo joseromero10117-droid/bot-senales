@@ -1,13 +1,11 @@
 from datetime import datetime
-import re
+import requests
 
 def actualizar_html(tiempo, porcentaje, direccion, activo="PAXG"):
     try:
-        # Lee el contenido actual del índice.html en español
         with open("índice.html", "r", encoding="utf-8") as f:
             contenido = f.read()
         
-        # Crea la nueva fila para la tabla del historial en el HTML
         color_clase = "text-emerald-400" if direccion.lower() == "alcista" else "text-red-400"
         nueva_fila = f"""
             <tr class="border-b border-gray-800 hover:bg-darkBg/50">
@@ -18,32 +16,41 @@ def actualizar_html(tiempo, porcentaje, direccion, activo="PAXG"):
             </tr>
         """
         
-        # Inserta la nueva señal justo en el marcador de la tabla dentro del índice.html
         if "<!-- SEÑALES_INJECT_POINT -->" in contenido:
             contenido = contenido.replace("<!-- SEÑALES_INJECT_POINT -->", nueva_fila + "\n<!-- SEÑALES_INJECT_POINT -->")
-        else:
-            # Respaldo si no encuentra el marcador exacto
-            contenido = contenido.replace("</body>", f"""
-            <div id="historial-emergencia" style="display:none;">{nueva_fila}</div>
-            </body>
-            """)
-
-        # Guarda los cambios de vuelta en el índice.html
-        with open("índice.html", "w", encoding="utf-8") as f:
-            f.write(contenido)
+            with open("índice.html", "w", encoding="utf-8") as f:
+                f.write(contenido)
+            print("Señal del 51%+ registrada correctamente.")
             
-        print("Historial HTML (índice.html) actualizado correctamente.")
     except Exception as e:
-        print(f"Error al actualizar el HTML: {e}")
+        print(f"Error: {e}")
 
-# --- LÓGICA DE DETECCIÓN DE SEÑAL ---
-# Obtiene la fecha y hora exacta (hora y minuto)
-tiempo_actual = datetime.now().strftime("%Y-%m-%d %H:%M")
+# --- LÓGICA DE PRUEBA (>= 51%) ---
+try:
+    url_depth = "https://api.binance.com/api/v3/depth?symbol=PAXGUSDT&limit=50"
+    response = requests.get(url_depth)
+    data = response.json()
+    
+    total_bids = sum(float(bid[1]) for bid in data.get('bids', []))
+    total_asks = sum(float(ask[1]) for ask in data.get('asks', []))
+    total_sum = total_bids + total_asks
+    
+    bids_percent = round((total_bids / total_sum) * 100)
+    asks_percent = 100 - bids_percent
+    
+    if bids_percent >= asks_percent:
+        porcentaje_actual = bids_percent
+        tendencia = "Alcista"
+    else:
+        porcentaje_actual = asks_percent
+        tendencia = "Bajista"
+        
+    # FILTRO DE PRUEBA: 51% o más
+    if porcentaje_actual >= 51:
+        tiempo_actual = datetime.now().strftime("%Y-%m-%d %H:%M")
+        actualizar_html(tiempo_actual, porcentaje_actual, tendencia, "PAXG")
+    else:
+        print(f"Porcentaje actual ({porcentaje_actual}%) por debajo del 51%.")
 
-# Condición de ejemplo (puedes ajustarla a tu estrategia real de análisis)
-porcentaje_actual = 70 
-tendencia = "Alcista" # Cambiar a "Bajista" según corresponda
-activo_mercado = "PAXG"
-
-if porcentaje_actual >= 70:
-    actualizar_html(tiempo_actual, porcentaje_actual, tendencia, activo_mercado)
+except Exception as e:
+    print(f"Error de conexión: {e}")

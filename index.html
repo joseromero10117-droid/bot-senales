@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Técnico Real - XAU/USD (Oro)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#111827',
+                        accentGold: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-darkBg text-gray-100 min-h-screen font-sans p-4 sm:p-6">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Cabecera -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-800 pb-4 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    <span class="text-accentGold">⚡</span> 
+                    <span>Panel de Datos Reales: <span class="text-accentGold">XAU/USD (Binance PAXG)</span></span>
+                </h1>
+                <p class="text-sm text-gray-400">Analizando el libro de órdenes y el volumen real de mercado en tiempo real.</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-cardBg px-3 py-1.5 rounded-lg border border-gray-800">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span id="live-time" class="text-xs text-gray-400">--:--:--</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tarjetas de Métricas Reales -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-cardBg p-4 rounded-xl border border-gray-800 shadow-lg">
+                <div class="text-xs text-gray-400 font-medium uppercase">Precio Spot en Vivo</div>
+                <div id="asset-price" class="text-2xl font-bold text-accentGold mt-1">Conectando...</div>
+                <div class="text-xs text-emerald-400 mt-1">● PAXG/USDT (Binance)</div>
+            </div>
+            <div class="bg-cardBg p-4 rounded-xl border border-gray-800 shadow-lg">
+                <div class="text-xs text-gray-400 font-medium uppercase">Variación 24h (Real)</div>
+                <div id="price-change-24h" class="text-2xl font-bold text-gray-200 mt-1">-- %</div>
+                <div class="text-xs text-gray-400 mt-1">Cambio de precio oficial</div>
+            </div>
+            <div class="bg-cardBg p-4 rounded-xl border border-gray-800 shadow-lg">
+                <div class="text-xs text-gray-400 font-medium uppercase">Presión Libro de Órdenes</div>
+                <div id="orderbook-pressure" class="text-2xl font-bold text-blue-400 mt-1">Calculando...</div>
+                <div class="text-xs text-gray-400 mt-1">Bids vs Asks (Binance)</div>
+            </div>
+            <div class="bg-cardBg p-4 rounded-xl border border-gray-800 shadow-lg">
+                <div class="text-xs text-gray-400 font-medium uppercase">Volumen Negociado 24h</div>
+                <div id="volume-24h" class="text-2xl font-bold text-gray-200 mt-1">--</div>
+                <div class="text-xs text-gray-400 mt-1">Total USDT operado</div>
+            </div>
+        </div>
+
+        <!-- Gráficos Reales -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-cardBg p-5 rounded-xl border border-gray-800 lg:col-span-2 shadow-lg flex flex-col justify-between">
+                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Comportamiento de Velas Recientes (Historial Real)</h2>
+                <div class="relative h-64 w-full">
+                    <canvas id="realKlineChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-cardBg p-5 rounded-xl border border-gray-800 shadow-lg flex flex-col justify-between">
+                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Distribución del Libro de Órdenes</h2>
+                <div class="relative h-48 w-full flex justify-center items-center">
+                    <canvas id="orderBookDonut"></canvas>
+                </div>
+                <div id="donut-legend" class="flex justify-between text-xs text-gray-400 mt-4 border-t border-gray-800 pt-3">
+                    <span class="text-emerald-400 font-semibold" id="legend-bids">● Compra (Bids): --%</span>
+                    <span class="text-red-400 font-semibold" id="legend-asks">● Venta (Asks): --%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bloque de Estado Técnico Real -->
+        <div class="bg-cardBg p-5 rounded-xl border border-gray-800 shadow-lg space-y-4">
+            <div class="border-b border-gray-800 pb-3">
+                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Estado Técnico Basado en Binance</h2>
+                <p class="text-xs text-gray-400">Lectura directa obtenida de los últimos movimientos del precio y volumen.</p>
+            </div>
+            <div id="real-technical-status" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="bg-darkBg p-3.5 rounded-xl border border-gray-800">
+                    <span class="text-xs text-gray-400 block">Tendencia Corto Plazo:</span>
+                    <span id="tech-trend" class="font-bold text-gray-200 text-base mt-1 block">Analizando...</span>
+                </div>
+                <div class="bg-darkBg p-3.5 rounded-xl border border-gray-800">
+                    <span class="text-xs text-gray-400 block">Fuerza de Volumen:</span>
+                    <span id="tech-volume" class="font-bold text-gray-200 text-base mt-1 block">Analizando...</span>
+                </div>
+                <div class="bg-darkBg p-3.5 rounded-xl border border-gray-800">
+                    <span class="text-xs text-gray-400 block">Desequilibrio de Órdenes:</span>
+                    <span id="tech-imbalance" class="font-bold text-gray-200 text-base mt-1 block">Analizando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Historial de Señales del Día -->
+        <div class="bg-cardBg p-5 rounded-xl border border-gray-800 shadow-lg space-y-4">
+            <div class="border-b border-gray-800 pb-3 flex justify-between items-center">
+                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Historial de Señales (70%) de Hoy</h2>
+                <span class="text-xs text-accentGold bg-darkBg px-2.5 py-1 rounded-md border border-gray-800">Actualizado en la nube</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-800 text-xs text-gray-400 uppercase">
+                            <th class="py-2 px-4">Hora y Minuto</th>
+                            <th class="py-2 px-4">Activo</th>
+                            <th class="py-2 px-4">Nivel</th>
+                            <th class="py-2 px-4">Tendencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- SEÑALES_INJECT_POINT -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Reloj en vivo
+        function updateClock() {
+            document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Configuración Gráfica de Líneas (Historial de Velas Reales de Binance)
+        const ctxLine = document.getElementById('realKlineChart').getContext('2d');
+        const realKlineChart = new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Precio PAXG (USD)',
+                    data: [],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', maxTicksLimit: 8 } },
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } }
+                }
+            }
+        });
+
+        // Configuración Gráfica Donut (Libro de Órdenes Real)
+        const ctxDonut = document.getElementById('orderBookDonut').getContext('2d');
+        const orderBookDonut = new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Órdenes de Compra (Bids)', 'Órdenes de Venta (Asks)'],
+                datasets: [{
+                    data: [50, 50],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                cutout: '75%'
+            }
+        });
+
+        // Función principal para conectar a Binance y traer datos reales
+        async function fetchBinanceRealData() {
+            try {
+                let tickerRes = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT');
+                let tickerData = await tickerRes.json();
+                
+                let currentPrice = parseFloat(tickerData.lastPrice).toFixed(2);
+                let priceChange = parseFloat(tickerData.priceChangePercent).toFixed(2);
+                let volumeUSD = parseFloat(tickerData.quoteVolume).toLocaleString('en-US', {maximumFractionDigits: 0});
+
+                document.getElementById('asset-price').innerText = `$ ${currentPrice}`;
+                
+                let changeEl = document.getElementById('price-change-24h');
+                changeEl.innerText = `${priceChange > 0 ? '+' : ''}${priceChange}%`;
+                changeEl.className = `text-2xl font-bold mt-1 ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+                
+                document.getElementById('volume-24h').innerText = `$ ${volumeUSD}`;
+
+                let klinesRes = await fetch('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=15');
+                let klinesData = await klinesRes.json();
+
+                let times = [];
+                let prices = [];
+                klinesData.forEach(candle => {
+                    let date = new Date(candle[0]);
+                    times.push(date.getHours() + ":00");
+                    prices.push(parseFloat(candle[4]));
+                });
+
+                realKlineChart.data.labels = times;
+                realKlineChart.data.datasets[0].data = prices;
+                realKlineChart.update();
+
+                let lastClose = prices[prices.length - 1];
+                let prevClose = prices[prices.length - 2];
+                let trendEl = document.getElementById('tech-trend');
+                if (lastClose > prevClose) {
+                    trendEl.innerText = "Alcista (vela horaria positiva)";
+                    trendEl.className = "font-bold text-emerald-400 text-base mt-1 block";
+                } else {
+                    trendEl.innerText = "Bajista (vela horaria negativa)";
+                    trendEl.className = "font-bold text-red-400 text-base mt-1 block";
+                }
+
+                let volEl = document.getElementById('tech-volume');
+                let recentVolume = parseFloat(klinesData[klinesData.length - 1][5]);
+                volEl.innerText = `${recentVolume.toFixed(2)} PAXG en la última hora`;
+
+                let depthRes = await fetch('https://api.binance.com/api/v3/depth?symbol=PAXGUSDT&limit=50');
+                let depthData = await depthRes.json();
+
+                let totalBids = 0;
+                depthData.bids.forEach(bid => { totalBids += parseFloat(bid[1]); });
+
+                let totalAsks = 0;
+                depthData.asks.forEach(ask => { totalAsks += parseFloat(ask[1]); });
+
+                let totalSum = totalBids + totalAsks;
+                let bidsPercent = Math.round((totalBids / totalSum) * 100);
+                let asksPercent = 100 - bidsPercent;
+
+                orderBookDonut.data.datasets[0].data = [bidsPercent, asksPercent];
+                orderBookDonut.update();
+
+                document.getElementById('legend-bids').innerText = `● Compra (Bids): ${bidsPercent}%`;
+                document.getElementById('legend-asks').innerText = `● Venta (Asks): ${asksPercent}%`;
+
+                let pressureEl = document.getElementById('orderbook-pressure');
+                let imbalanceEl = document.getElementById('tech-imbalance');
+
+                if (bidsPercent > asksPercent) {
+                    pressureEl.innerText = "Mayor Demanda (Bids)";
+                    pressureEl.className = "text-2xl font-bold text-emerald-400 mt-1";
+                    imbalanceEl.innerText = `Presión compradora dominando (${bidsPercent}%)`;
+                    imbalanceEl.className = "font-bold text-emerald-400 text-base mt-1 block";
+                } else {
+                    pressureEl.innerText = "Mayor Oferta (Asks)";
+                    pressureEl.className = "text-2xl font-bold text-red-400 mt-1";
+                    imbalanceEl.innerText = `Presión vendedora dominando (${asksPercent}%)`;
+                    imbalanceEl.className = "font-bold text-red-400 text-base mt-1 block";
+                }
+
+            } catch (error) {
+                console.error("Error al conectar con Binance:", error);
+            }
+        }
+
+        fetchBinanceRealData();
+        setInterval(fetchBinanceRealData, 5000);
+    </script>
+</body>
+</html>

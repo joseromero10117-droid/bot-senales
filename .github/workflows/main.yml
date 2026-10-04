@@ -2,15 +2,13 @@ name: Bot de Señales Automático
 
 on:
   schedule:
-    # Se ejecuta cada 15 minutos
     - cron: '*/15 * * * *'
-  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     
-    # Permisos explícitos de lectura y escritura requeridos
     permissions:
       contents: write
 
@@ -26,6 +24,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
+          pip install requests
 
       - name: Ejecutar bot de señales
         run: python bot.py

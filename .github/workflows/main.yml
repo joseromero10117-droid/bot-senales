@@ -1,20 +1,21 @@
-name: Bot de Señales 24/7
+name: Bot de Señales Automático
 
 on:
   schedule:
-    # Se ejecutará automáticamente en la nube cada 15 minutos
-    - cron: '*/15 * * * *' 
-  workflow_dispatch: # Permite ejecutarlo manualmente cuando quieras con un clic
+    # Se ejecuta cada 15 minutos
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     
+    # Permisos necesarios para que el bot pueda escribir y guardar en el repositorio
     permissions:
-      contents: write # Permite que el sistema guarde el registro en tu archivo txt
+      contents: write
 
     steps:
-      - name: Descargar repositorio
+      - name: Clonar repositorio
         uses: actions/checkout@v4
 
       - name: Configurar Python
@@ -22,11 +23,18 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Ejecutar script
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          # Si usas librerías adicionales en tu bot.py, agrégalas aquí (ej: requests)
+
+      - name: Ejecutar bot de señales
         run: python bot.py
 
-      - name: Guardar cambios en el archivo de historial
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Auto: Nueva señal registrada"
-          file_pattern: "historial_senales.txt"
+      - name: Guardar y actualizar cambios en GitHub
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add índice.html
+          git commit -m "Auto: Nueva señal registrada en índice.html" || exit 0
+          git push
